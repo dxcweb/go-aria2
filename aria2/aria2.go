@@ -85,6 +85,9 @@ func Download(url string, dir string, out string, callback DownloadCallback) err
 	}()
 	return nil
 }
+func Stop() {
+	aria2.Stop()
+}
 
 func newDaemon() *Aria2 {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -117,6 +120,7 @@ func (a *Aria2) IsRunning() bool {
 func (a *Aria2) Start() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	println("启动Aria2c")
 	if a.running {
 		return fmt.Errorf("aria2c已经运行")
 	}
