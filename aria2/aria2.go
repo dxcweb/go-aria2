@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -131,11 +132,17 @@ func (a *Aria2) Start() error {
 
 	a.cmd = exec.CommandContext(a.ctx, binaryPath, args...)
 
-	// 启动进程
-	if err := a.cmd.Start(); err != nil {
-		// a.cleanup()
-		return fmt.Errorf("failed to start aria2c: %w", err)
+	// 在 Windows 上隐藏控制台窗口
+	if a.cmd.SysProcAttr == nil {
+		a.cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
+	a.cmd.SysProcAttr.HideWindow = true
+
+	if err := a.cmd.Start(); err != nil {
+		// 进程结束时的错误处理
+		return fmt.Errorf("aria2c 进程结束: %v", err)
+	}
+
 	// 等待RPC服务启动
 	if err := a.waitForRPC(); err != nil {
 		// a.Stop()
