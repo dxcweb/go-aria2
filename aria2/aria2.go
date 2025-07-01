@@ -72,13 +72,13 @@ type Aria2 struct {
 var aria2 = newDaemon()
 
 // Download 包级别的下载函数，可以直接调用
-func Download(url string, dir string, out string, callback DownloadCallback) (string, error) {
+func Download(url string, dir string, callback DownloadCallback) (string, error) {
 	if !aria2.IsRunning() {
 		if err := aria2.Start(); err != nil {
 			return "", err
 		}
 	}
-	gid, err := aria2.AddUri(url, dir, out)
+	gid, err := aria2.AddUri(url, dir)
 	if err != nil {
 		return "", err
 	}
@@ -130,12 +130,7 @@ func (a *Aria2) Start() error {
 		return err
 	}
 	args := a.buildArgs()
-	ctx, cancel := context.WithCancel(context.Background())
-	a.ctx = ctx
-	a.cancel = cancel
-
-	a.cmd = exec.CommandContext(a.ctx, binaryPath, args...)
-
+	a.cmd = exec.Command(binaryPath, args...)
 	// 在 Windows 上隐藏控制台窗口
 	if a.cmd.SysProcAttr == nil {
 		a.cmd.SysProcAttr = &syscall.SysProcAttr{}
@@ -143,8 +138,24 @@ func (a *Aria2) Start() error {
 	a.cmd.SysProcAttr.HideWindow = true
 
 	if err := a.cmd.Start(); err != nil {
-		return fmt.Errorf("aria2c 进程启动失败: %v", err)
+		return fmt.Errorf("安装失败: %v", err)
 	}
+
+	// ctx, cancel := context.WithCancel(context.Background())
+	// a.ctx = ctx
+	// a.cancel = cancel
+
+	// a.cmd = exec.CommandContext(a.ctx, binaryPath, args...)
+
+	// // 在 Windows 上隐藏控制台窗口
+	// if a.cmd.SysProcAttr == nil {
+	// 	a.cmd.SysProcAttr = &syscall.SysProcAttr{}
+	// }
+	// a.cmd.SysProcAttr.HideWindow = true
+
+	// if err := a.cmd.Start(); err != nil {
+	// 	return fmt.Errorf("aria2c 进程启动失败: %v", err)
+	// }
 
 	// 等待RPC服务启动
 	if err := a.waitForRPC(); err != nil {
@@ -317,12 +328,11 @@ func (a *Aria2) Call(method string, params []interface{}) (json.RawMessage, erro
 	return rpcResp.Result, nil
 }
 
-func (a *Aria2) AddUri(uri string, dir string, out string) (string, error) {
+func (a *Aria2) AddUri(uri string, dir string) (string, error) {
 	result, err := a.Call("aria2.addUri", []interface{}{
 		[]string{uri}, // 第一个参数：URL数组
 		map[string]interface{}{ // 第二个参数：选项对象
 			"dir": dir,
-			"out": out,
 		},
 	})
 	if err != nil {

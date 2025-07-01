@@ -13,7 +13,6 @@ func main() {
 	// 示例URL
 	url := "https://repo.anaconda.com/miniconda/Miniconda3-py39_25.5.1-0-Windows-x86_64.exe"
 	dir := ""
-	out := ""
 
 	// 记录开始时间
 	startTime := time.Now()
@@ -51,9 +50,9 @@ func main() {
 
 	// 开始下载
 	fmt.Println("开始下载...")
-	path, err := aria2.Download(url, dir, out, callback)
+	path, err := aria2.Download(url, dir, callback)
 	if err != nil {
 		log.Fatalf("下载失败: %v", err)
 	}
-	fmt.Println("下载完成", path)
+	fmt.Println("下载完成，路径为", path)
 }
