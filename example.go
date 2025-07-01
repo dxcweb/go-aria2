@@ -3,10 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
 
 	"github.com/dxcweb/go-aria2/aria2"
@@ -54,13 +51,9 @@ func main() {
 
 	// 开始下载
 	fmt.Println("开始下载...")
-	err := aria2.Download(url, dir, out, callback)
+	path, err := aria2.Download(url, dir, out, callback)
 	if err != nil {
 		log.Fatalf("下载失败: %v", err)
 	}
-
-	fmt.Println("----------------------------------------------------", "完成!")
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
+	fmt.Println("下载完成", path)
 }

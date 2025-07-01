@@ -27,7 +27,10 @@ type DownloadStatus struct {
 	Connections     string `json:"connections"`     // 连接数
 	ErrorCode       string `json:"errorCode"`       // 错误代码
 	ErrorMessage    string `json:"errorMessage"`    // 错误信息
-	Dir             string `json:"dir"`             // 下载目录
+	Files           []File `json:"files"`           // 文件列表
+}
+type File struct {
+	Path string `json:"path"`
 }
 
 // URI URI信息结构体
@@ -69,21 +72,18 @@ type Aria2 struct {
 var aria2 = newDaemon()
 
 // Download 包级别的下载函数，可以直接调用
-func Download(url string, dir string, out string, callback DownloadCallback) error {
+func Download(url string, dir string, out string, callback DownloadCallback) (string, error) {
 	if !aria2.IsRunning() {
 		if err := aria2.Start(); err != nil {
-			return err
+			return "", err
 		}
 	}
 	gid, err := aria2.AddUri(url, dir, out)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	go func() {
-		aria2.monitorDownload(gid, callback)
-	}()
-	return nil
+	return aria2.monitorDownload(gid, callback)
 }
 func Stop() {
 	aria2.Stop()
@@ -349,7 +349,7 @@ func (a *Aria2) TellStatus(gid string) (*DownloadStatus, error) {
 }
 
 // monitorDownload 监控下载状态直到完成或出错（同步版本）
-func (a *Aria2) monitorDownload(gid string, callback DownloadCallback) error {
+func (a *Aria2) monitorDownload(gid string, callback DownloadCallback) (string, error) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
@@ -358,7 +358,7 @@ func (a *Aria2) monitorDownload(gid string, callback DownloadCallback) error {
 		case <-ticker.C:
 			status, err := a.TellStatus(gid)
 			if err != nil {
-				return err
+				return "", err
 			}
 
 			// 调用回调函数
@@ -369,12 +369,12 @@ func (a *Aria2) monitorDownload(gid string, callback DownloadCallback) error {
 			// 检查是否完成或出错
 			switch status.Status {
 			case "complete":
-				return nil
+				return status.Files[0].Path, nil
 			case "error":
-				return fmt.Errorf("下载出错: %s", status.ErrorMessage)
+				return "", fmt.Errorf("下载出错: %s", status.ErrorMessage)
 			}
 		case <-a.ctx.Done():
-			return fmt.Errorf("ctx上下文已取消")
+			return "", fmt.Errorf("ctx上下文已取消")
 		}
 	}
 }

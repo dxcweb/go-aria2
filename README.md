@@ -63,9 +63,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/dxcweb/go-aria2/aria2"
 )
@@ -84,14 +81,11 @@ func main() {
 
 	// 开始下载
 	url := "https://repo.anaconda.com/miniconda/Miniconda3-py39_25.5.1-0-Windows-x86_64.exe"
-	err := aria2.Download(url, "", "", callback)
+	path, err := aria2.Download(url, "", "", callback)
 	if err != nil {
 		log.Fatalf("下载失败: %v", err)
 	}
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
+	fmt.Println("下载完成", path)
 }
 
 ```
