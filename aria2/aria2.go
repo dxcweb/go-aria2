@@ -139,44 +139,44 @@ func (a *Aria2) Start() error {
 	a.cmd.SysProcAttr.HideWindow = true
 
 	if err := a.cmd.Start(); err != nil {
-		// 进程结束时的错误处理
-		return fmt.Errorf("aria2c 进程结束: %v", err)
+		return fmt.Errorf("aria2c 进程启动失败: %v", err)
 	}
 
 	// 等待RPC服务启动
 	if err := a.waitForRPC(); err != nil {
-		// a.Stop()
 		return fmt.Errorf("RPC service failed to start: %w", err)
 	}
-	// print("端口：", a.port)
+
 	a.running = true
+	go a.monitor()
+	// 启动进程监控
+	// a.processMonitor = make(chan struct{})
+	// go a.monitorProcess()
+
 	return nil
 }
 
-// Stop 停止aria2c服务
+// monitor 监控进程状态
+func (a *Aria2) monitor() {
+	if a.cmd != nil {
+		a.cmd.Wait()
+		a.Stop()
+	}
+}
+
+// 修改 Stop 方法
 func (a *Aria2) Stop() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-
-	if !a.running {
-		return nil
-	}
-
+	a.running = false
 	if a.cmd != nil && a.cmd.Process != nil {
 		if err := a.cmd.Process.Kill(); err != nil {
+			println("3333", "failed to kill aria2c process: %w", err)
 			return fmt.Errorf("failed to kill aria2c process: %w", err)
 		}
 	}
 
-	a.running = false
 	return nil
-}
-
-// GetPort 获取当前使用的端口号
-func (a *Aria2) GetPort() int {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	return a.port
 }
 
 func findAvailablePort(port int) int {
